@@ -93,6 +93,11 @@ contract PollToken is Owned, Stoppable, TokenEvents {
         return transferFrom(msg.sender, dst, wad);
     }
 
+    function getPayoutAmount(uint256 wad) public view returns (uint256) {
+            uint256 portion = Math.div(Math.mul(totalSupply, 1000), wad);
+            return Math.div(Math.mul(maxBalance, 1000), portion);
+    }
+
     function transferFrom(address src, address dst, uint256 wad) public stoppable returns (bool) {
         //TODO: check if memory is the correct place
         address[] memory pollQuestions = questions[poll];
@@ -113,8 +118,7 @@ contract PollToken is Owned, Stoppable, TokenEvents {
         Transfer(src, dst, wad);
 
         if(isQuestionDst) {
-            uint256 portion = (totalSupply * 1000) / wad;
-            src.transfer((maxBalance * 1000) / portion);
+            src.transfer(getPayoutAmount(wad));
         }
 
         return true;

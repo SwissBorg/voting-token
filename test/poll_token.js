@@ -88,6 +88,13 @@ contract('PollToken', function (accounts) {
     })
   })
 
+  it('informs you of your payout without you sending any funds', async () => {
+    let wad = 5e5
+    let portion = (await pt.totalSupply()).times(1000).dividedBy(wad)
+    let distribution = (await pt.maxBalance()).times(1000).dividedBy(portion)
+    assert.equal((await pt.getPayoutAmount(wad)).toNumber(), parseInt(distribution.toNumber()))
+  })
+
   it('disrtibutes a portion of the funds when tokens are sent to a question', async () => {
     let balance = await web3.eth.getBalance(accounts[1])
     let cost = undefined
