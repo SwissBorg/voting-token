@@ -34,8 +34,8 @@ contract ERC20Interface {
 }
 
 contract TokenEvents {
-    event Burnt(address indexed src, uint256 wad);
-    event Minted(address indexed src, uint256 wad);
+    event Burnt(address indexed src, uint256 tokens);
+    event Minted(address indexed src, uint256 tokens);
 }
 
 
