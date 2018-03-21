@@ -16,15 +16,30 @@ import "./SafeMath.sol";
 import "./Owned.sol";
 
 
+
+// ----------------------------------------------------------------------------
+// ERC Token Standard #20 Interface
+// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20-token-standard.md
+// ----------------------------------------------------------------------------
+contract ERC20Interface {
+    function totalSupply() public constant returns (uint);
+    function balanceOf(address tokenOwner) public constant returns (uint balance);
+    function allowance(address tokenOwner, address spender) public constant returns (uint remaining);
+    function transfer(address to, uint tokens) public returns (bool success);
+    function approve(address spender, uint tokens) public returns (bool success);
+    function transferFrom(address from, address to, uint tokens) public returns (bool success);
+
+    event Transfer(address indexed from, address indexed to, uint tokens);
+    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+}
+
 contract TokenEvents {
     event Burnt(address indexed src, uint256 wad);
     event Minted(address indexed src, uint256 wad);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 
-contract PollToken is Owned, TokenEvents {
+contract PollToken is ERC20Interface, Owned, TokenEvents {
     string public symbol;
     string public name; // Optional token name
     uint8 public decimals = 18; // standard token precision. override to customize
