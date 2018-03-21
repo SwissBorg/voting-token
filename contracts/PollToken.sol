@@ -12,9 +12,8 @@
 
 pragma solidity ^0.4.18;
 
-import "./Math.sol";
+import "./SafeMath.sol";
 import "./Owned.sol";
-import "./Stoppable.sol";
 
 
 contract TokenEvents {
@@ -25,7 +24,7 @@ contract TokenEvents {
 }
 
 
-contract PollToken is Owned, Stoppable, TokenEvents {
+contract PollToken is Owned, TokenEvents {
     string public symbol;
     string public name; // Optional token name
     uint8 public decimals = 18; // standard token precision. override to customize
@@ -33,6 +32,7 @@ contract PollToken is Owned, Stoppable, TokenEvents {
     uint256 public totalSupply;
     uint256 public maxBalance;
     bytes32 public poll;
+    bool public open;
 
     mapping(bytes32 => bool) polls;
     mapping(bytes32 => mapping(address => uint256)) balances;
@@ -47,15 +47,15 @@ contract PollToken is Owned, Stoppable, TokenEvents {
         // you can't create logic here, because this contract would be the owner.
         name = name_;
         symbol = symbol_;
-        stopped = true;
+        open = true;
     }
 
     function () payable public {
-        maxBalance = Math.add(maxBalance, msg.value);
+        maxBalance = SafeMath.add(maxBalance, msg.value);
     }
 
     function stop() public onlyOwner {
-        stopped = true;
+        open = false;
         maxBalance = this.balance;
     }
 
@@ -89,11 +89,13 @@ contract PollToken is Owned, Stoppable, TokenEvents {
         return allowances[poll][owner][spender];
     }
 
-    function transfer(address dst, uint256 wad) public stoppable returns (bool) {
+    function transfer(address dst, uint256 wad) public returns (bool) {
+        require(open);
         return transferFrom(msg.sender, dst, wad);
     }
 
-    function transferFrom(address src, address dst, uint256 wad) public stoppable returns (bool) {
+    function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
+        require(open);
         //TODO: check if memory is the correct place
         address[] memory pollQuestions = questions[poll];
         bool isQuestionDst;
@@ -108,8 +110,8 @@ contract PollToken is Owned, Stoppable, TokenEvents {
             require(isQuestionDst);
         }
 
-        balances[poll][src] = Math.sub(balances[poll][src], wad);
-        balances[poll][dst] += Math.add(balances[poll][dst], wad);
+        balances[poll][src] = SafeMath.sub(balances[poll][src], wad);
+        balances[poll][dst] += SafeMath.add(balances[poll][dst], wad);
         Transfer(src, dst, wad);
 
         if(isQuestionDst) {
@@ -120,26 +122,28 @@ contract PollToken is Owned, Stoppable, TokenEvents {
         return true;
     }
 
-    function approve(address guy, uint256 wad) public stoppable returns (bool) {
+    function approve(address guy, uint256 wad) public returns (bool) {
+        require(open);
         allowances[poll][msg.sender][guy] = wad;
         Approval(msg.sender, guy, wad);
         return true;
     }
 
-    function pull(address src, uint256 wad) public stoppable returns (bool) {
+    function pull(address src, uint256 wad) public returns (bool) {
+        require(open);
         return transferFrom(src, msg.sender, wad);
     }
 
     function mint(address dst, uint256 wad) public onlyOwner {
-        balances[poll][dst] = Math.add(balances[poll][dst], wad);
-        totalSupply = Math.add(totalSupply, wad);
+        balances[poll][dst] = SafeMath.add(balances[poll][dst], wad);
+        totalSupply = SafeMath.add(totalSupply, wad);
         Minted(dst, wad);
         Transfer(address(0x0), dst, wad);
     }
 
     function burn(uint256 wad) public {
-        balances[poll][msg.sender] = Math.sub(balances[poll][msg.sender], wad);
-        totalSupply = Math.sub(totalSupply, wad);
+        balances[poll][msg.sender] = SafeMath.sub(balances[poll][msg.sender], wad);
+        totalSupply = SafeMath.sub(totalSupply, wad);
         Burnt(msg.sender, wad);
         Transfer(msg.sender, address(0x0), wad);
     }

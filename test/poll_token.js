@@ -26,21 +26,13 @@ contract('PollToken', function (accounts) {
     pt = await PollToken.deployed();
   })
 
-  it('is created stopped', async () => {
-    assert.ok(await pt.stopped())
+  it('is created open', async () => {
+    assert.ok(await pt.open())
   })
 
   it('can add a poll', async () => {
     await pt.addPoll()
     assert.notEqual(await pt.poll(), '0x0000000000000000000000000000000000000000000000000000000000000000')
-  })
-
-  it('can not be started by a non owner', async () => {
-    await utils.assertThrowsAsynchronously(() => pt.start({from: accounts[1]}))
-  })
-
-  it('can be started by the owner', async () => {
-    await pt.start({from: accounts[0]})
   })
 
   it('can mint tokens for a chosen address', async () => {
