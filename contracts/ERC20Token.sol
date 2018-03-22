@@ -19,8 +19,6 @@ contract ERC20Token is ERC20Interface, Owned {
     mapping(address => uint) balances;
     mapping(address => mapping(address => uint)) allowed;
 
-    event Burn(address indexed from, uint256 tokens);
-
     // ------------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------------
@@ -60,13 +58,6 @@ contract ERC20Token is ERC20Interface, Owned {
         Transfer(msg.sender, to, tokens);
         return true;
     }
-
-    function burn(uint tokens) public returns (bool success) {
-        balances[tx.origin] = balances[tx.origin].sub(tokens);
-        totalSupply = totalSupply.sub(tokens);
-        Burn(tx.origin, tokens);
-        return true;
-    } 
 
     // ------------------------------------------------------------------------
     // Token owner can approve for `spender` to transferFrom(...) `tokens`

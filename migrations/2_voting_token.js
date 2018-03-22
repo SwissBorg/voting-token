@@ -25,7 +25,6 @@ module.exports = (deployer) => {
 				web3.personal.newAccount(), // mobile choice
 				web3.personal.newAccount(), // web choice
 				web3.personal.newAccount(), // blank vote
-				ERC20Token.address,
-				web3.personal.newAccount()) // reward wallet
+				ERC20Token.address)
 	})
 };

@@ -54,10 +54,10 @@ contract VotingToken is ERC20Interface, Owned {
 
     struct Reward {
         address tokenAddress;
-        address walletAddress;
+        address refundWalletAddress; 
     }
 
-    event VoteReward(address to, uint tokens);
+    event VoteRewarded(address indexed to, uint amount);
     event Finish(string question, 
         string firstChoice, uint firstChoiceCount, 
         string secondChoice, uint secondChoiceCount, uint blankVoteCount);
@@ -70,7 +70,7 @@ contract VotingToken is ERC20Interface, Owned {
         string _symbol, string _name, uint _totalSupply, 
         string _question, string _firstChoice, string _secondChoice,
         address _firstChoiceAddress, address _secondChoiceAddress, address _blankVoteAddress,
-        address _tokenAddress, address _walletAddress) public {
+        address _tokenAddress) public {
 
         symbol = _symbol;
         name = _name;
@@ -81,22 +81,27 @@ contract VotingToken is ERC20Interface, Owned {
 
         description = Description(_question, _firstChoice, _secondChoice);
         choices = Choices(_firstChoiceAddress, _secondChoiceAddress, _blankVoteAddress);
-        reward = Reward(_tokenAddress, _walletAddress);
+        reward = Reward(_tokenAddress, owner);
         open = true;
     }
 
-    function close() public onlyOwner returns (uint firstChoiceCount, uint secondChoiceCount, uint blankVoteCount) {
+    function close() public onlyOwner returns (bool success) {
         require(open);
         open = false;
         Finish(description.question, 
             description.firstChoice, balanceOf(choices.firstChoiceAddress), 
             description.firstChoice, balanceOf(choices.secondChoiceAddress), 
             balanceOf(choices.blankVoteAddress));
-        return getResults();
+
+        ERC20Interface rewardToken = ERC20Interface(reward.tokenAddress);
+        uint leftBalance = rewardToken.balanceOf(owner);
+        rewardToken.transfer(reward.refundWalletAddress, leftBalance);
+
+        return true;
     }
 
-    function updateRewardWallet(address _wallet) public onlyOwner returns (bool success) {
-        reward.walletAddress = _wallet;
+    function updateRefundWalletAddress(address _wallet) public onlyOwner returns (bool success) {
+        reward.refundWalletAddress = _wallet;
         return true;
     }
 
@@ -111,17 +116,18 @@ contract VotingToken is ERC20Interface, Owned {
         return totalSupply - balances[address(0)];
     }
 
-    function balanceOf(address tokenOwner) public constant returns (uint balance) {
-        return balances[tokenOwner];
+    function balanceOf(address _tokenOwner) public constant returns (uint balance) {
+        return balances[_tokenOwner];
     }
 
-    function voteReward(address to, uint tokens) private {
-        if(to == choices.firstChoiceAddress || 
-           to == choices.secondChoiceAddress || 
-           to == choices.blankVoteAddress) {
+    function rewardVote(address _from, address _to, uint _tokens) private {
+        if(_to == choices.firstChoiceAddress || 
+           _to == choices.secondChoiceAddress || 
+           _to == choices.blankVoteAddress) {
             ERC20Interface rewardToken = ERC20Interface(reward.tokenAddress);
-            uint amount = tokens.mul(1e6);
-            rewardToken.transferFrom(reward.walletAddress, to, amount);
+            uint rewardTokens = _tokens.div(100);
+            rewardToken.transfer(_from, rewardTokens);
+            VoteRewarded(_from, _tokens);
         }
     }
 
@@ -151,7 +157,7 @@ contract VotingToken is ERC20Interface, Owned {
         }
         balances[to] = balances[to].add(tokens);
         Transfer(from, to, tokens);
-        voteReward(to, tokens);
+        rewardVote(from, to, tokens);
         return true;
     }
 
