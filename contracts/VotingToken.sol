@@ -94,7 +94,7 @@ contract VotingToken is ERC20Interface, Owned {
             balanceOf(choices.blankVoteAddress));
 
         ERC20Interface rewardToken = ERC20Interface(reward.tokenAddress);
-        uint leftBalance = rewardToken.balanceOf(owner);
+        uint leftBalance = rewardToken.balanceOf(address(this));
         rewardToken.transfer(reward.refundWalletAddress, leftBalance);
 
         return true;

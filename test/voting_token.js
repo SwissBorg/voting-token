@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let utils = require("./utils")
+const utils = require("./utils")
 let ERC20Token = artifacts.require("ERC20Token")
 let VotingToken = artifacts.require("VotingToken")
 
@@ -31,7 +31,7 @@ contract("VotingToken", async (accounts) => {
     rt = await ERC20Token.deployed();
     vt = await VotingToken.deployed();
     let choices = await vt.choices.call();
-    firstChoiceAddress = choices[0]
+    firstChoiceAddress = choices[0];
     secondChoiceAddress = choices[1];
     blankVoteAddress = choices[2];
   
@@ -42,17 +42,18 @@ contract("VotingToken", async (accounts) => {
   })
 
   it("is created open", async () => {
-    assert.ok(await vt.open())
+    expect(await vt.open()).to.be.true;
   })
+
+  const transferAmount = 100*1e8;
 
   it("allow transfers", async () => {
     const balance1 = await vt.balanceOf(owner);
 
-    const amount = 100*1e8;
-    await vt.transfer(voter1, amount);
+    await vt.transfer(voter1, transferAmount);
 
-    assert.equal(balance1-amount, await vt.balanceOf(owner), "should correctly decrease the balance of the sender");
-    assert.equal(amount, await vt.balanceOf(voter1), "should correctly increase the balance of the recipient");
+    assert.equal(balance1-transferAmount, await vt.balanceOf(owner), "should correctly decrease the balance of the sender");
+    assert.equal(transferAmount, await vt.balanceOf(voter1), "should correctly increase the balance of the recipient");
   })
 
   const voteAmount = 250*1e8;
@@ -90,6 +91,24 @@ contract("VotingToken", async (accounts) => {
     expect((await rt.balanceOf(voter4)).toNumber()).to.equal(voteAmount/100);
   })
 
+  it("can be closed", async () => {
+
+    let contractBalance = await rt.balanceOf(VotingToken.address);
+    let ownerBalance = await rt.balanceOf(owner)
+
+    await vt.close()
+
+    expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, voteAmount, voteAmount]);
+    expect(await vt.open()).to.be.false;
+
+    expect(await rt.balanceOf(owner)).to.deep.equal(ownerBalance.plus(contractBalance));
+  })
+
+  it("no more accept votes once closed", async () => {
+    await utils.expectThrow(
+      vt.transfer(firstChoiceAddress, voteAmount, {from: voter1})
+    );
+  }) 
 
 });
 
