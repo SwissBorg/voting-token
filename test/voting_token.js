@@ -17,8 +17,8 @@ let VotingToken = artifacts.require("VotingToken")
 contract("VotingToken", async (accounts) => {
   let vt = undefined; // VotingToken
   let rt = undefined; // RewardToken as a ERC20Token
-  let firstChoiceAddress = undefined;
-  let secondChoiceAddress = undefined;
+  let firstPropAddress = undefined;
+  let secondPropAddress = undefined;
   let blankVoteAddress = undefined;
 
   const owner = accounts[0];
@@ -30,15 +30,15 @@ contract("VotingToken", async (accounts) => {
   before(async () => {
     rt = await ERC20Token.deployed();
     vt = await VotingToken.deployed();
-    let choices = await vt.choices.call();
-    firstChoiceAddress = choices[0];
-    secondChoiceAddress = choices[1];
-    blankVoteAddress = choices[2];
+    let props = await vt.props.call();
+    firstPropAddress = props[0];
+    secondPropAddress = props[1];
+    blankVoteAddress = props[2];
   
 
     await rt.transfer(VotingToken.address, 1000*1e8);
 
-    //console.log(`Nicolas (owner_${firstChoiceAddress}, 2_${secondChoiceAddress}, 3_${blankVoteAddress}`)
+    //console.log(`Nicolas (owner_${firstPropAddress}, 2_${secondPropAddress}, 3_${blankVoteAddress}`)
   })
 
   it("is created open", async () => {
@@ -58,23 +58,23 @@ contract("VotingToken", async (accounts) => {
 
   const voteAmount = 250*1e8;
 
-  it("accepts votes for the first choice", async () => {
+  it("accepts votes for the first prop", async () => {
     // Give voter his voting tokens
     await vt.transfer(voter2, voteAmount);
    
-    // Voter2 votes for the first choice
-    await vt.transfer(firstChoiceAddress, voteAmount, {from: voter2});
+    // Voter2 votes for the first prop
+    await vt.transfer(firstPropAddress, voteAmount, {from: voter2});
     expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, 0, 0]);
     expect((await vt.balanceOf(voter2)).toNumber()).to.equal(0);
     expect((await rt.balanceOf(voter2)).toNumber()).to.equal(voteAmount/100);
   }) 
 
-  it("accepts votes for the second choice", async () => { 
+  it("accepts votes for the second prop", async () => { 
     // Give voter his voting tokens
     await vt.transfer(voter3, voteAmount);
 
-    // Then, voter3 votes for the second choice
-    await vt.transfer(secondChoiceAddress, voteAmount, {from: voter3});
+    // Then, voter3 votes for the second prop
+    await vt.transfer(secondPropAddress, voteAmount, {from: voter3});
     expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, voteAmount, 0]);
     expect((await vt.balanceOf(voter3)).toNumber()).to.equal(0);
     expect((await rt.balanceOf(voter3)).toNumber()).to.equal(voteAmount/100);
@@ -106,7 +106,7 @@ contract("VotingToken", async (accounts) => {
 
   it("no more accept votes once closed", async () => {
     await utils.expectThrow(
-      vt.transfer(firstChoiceAddress, voteAmount, {from: voter1})
+      vt.transfer(firstPropAddress, voteAmount, {from: voter1})
     );
   }) 
 

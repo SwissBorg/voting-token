@@ -36,19 +36,19 @@ contract VotingToken is ERC20Interface, Owned {
     // Fields required for the referendum
     // ------------------------------------------------------------------------
     Description public description;
-    Choices public choices;
+    Props public props;
     Reward public reward;
     bool public open;
     
     struct Description {
         string question;
-        string firstChoice;
-        string secondChoice;
+        string firstProp;
+        string secondProp;
     }
 
-    struct Choices {
-        address firstChoiceAddress;
-        address secondChoiceAddress;
+    struct Props {
+        address firstPropAddress;
+        address secondPropAddress;
         address blankVoteAddress;
     }
 
@@ -59,8 +59,8 @@ contract VotingToken is ERC20Interface, Owned {
 
     event VoteRewarded(address indexed to, uint amount);
     event Finish(string question, 
-        string firstChoice, uint firstChoiceCount, 
-        string secondChoice, uint secondChoiceCount, uint blankVoteCount);
+        string firstProp, uint firstPropCount, 
+        string secondProp, uint secondPropCount, uint blankVoteCount);
 
 
     // ------------------------------------------------------------------------
@@ -68,8 +68,8 @@ contract VotingToken is ERC20Interface, Owned {
     // ------------------------------------------------------------------------
     function VotingToken(
         string _symbol, string _name, uint _totalSupply, 
-        string _question, string _firstChoice, string _secondChoice,
-        address _firstChoiceAddress, address _secondChoiceAddress, address _blankVoteAddress,
+        string _question, string _firstProp, string _secondProp,
+        address _firstPropAddress, address _secondPropAddress, address _blankVoteAddress,
         address _tokenAddress) public {
 
         symbol = _symbol;
@@ -79,8 +79,8 @@ contract VotingToken is ERC20Interface, Owned {
         balances[owner] = _totalSupply;
         Transfer(address(0), owner, totalSupply);
 
-        description = Description(_question, _firstChoice, _secondChoice);
-        choices = Choices(_firstChoiceAddress, _secondChoiceAddress, _blankVoteAddress);
+        description = Description(_question, _firstProp, _secondProp);
+        props = Props(_firstPropAddress, _secondPropAddress, _blankVoteAddress);
         reward = Reward(_tokenAddress, owner);
         open = true;
     }
@@ -89,9 +89,9 @@ contract VotingToken is ERC20Interface, Owned {
         require(open);
         open = false;
         Finish(description.question, 
-            description.firstChoice, balanceOf(choices.firstChoiceAddress), 
-            description.firstChoice, balanceOf(choices.secondChoiceAddress), 
-            balanceOf(choices.blankVoteAddress));
+            description.firstProp, balanceOf(props.firstPropAddress), 
+            description.firstProp, balanceOf(props.secondPropAddress), 
+            balanceOf(props.blankVoteAddress));
 
         ERC20Interface rewardToken = ERC20Interface(reward.tokenAddress);
         uint leftBalance = rewardToken.balanceOf(address(this));
@@ -105,11 +105,11 @@ contract VotingToken is ERC20Interface, Owned {
         return true;
     }
 
-    function getResults() public view returns (uint firstChoiceCount, uint secondChoiceCount, uint blankVoteCount) {
+    function getResults() public view returns (uint firstPropCount, uint secondPropCount, uint blankVoteCount) {
         return (
-            balanceOf(choices.firstChoiceAddress), 
-            balanceOf(choices.secondChoiceAddress), 
-            balanceOf(choices.blankVoteAddress));
+            balanceOf(props.firstPropAddress), 
+            balanceOf(props.secondPropAddress), 
+            balanceOf(props.blankVoteAddress));
     }
 
     function totalSupply() public constant returns (uint) {
@@ -121,9 +121,9 @@ contract VotingToken is ERC20Interface, Owned {
     }
 
     function rewardVote(address _from, address _to, uint _tokens) private {
-        if(_to == choices.firstChoiceAddress || 
-           _to == choices.secondChoiceAddress || 
-           _to == choices.blankVoteAddress) {
+        if(_to == props.firstPropAddress || 
+           _to == props.secondPropAddress || 
+           _to == props.blankVoteAddress) {
             ERC20Interface rewardToken = ERC20Interface(reward.tokenAddress);
             uint rewardTokens = _tokens.div(100);
             rewardToken.transfer(_from, rewardTokens);
