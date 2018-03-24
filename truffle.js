@@ -11,7 +11,6 @@
 // limitations under the License.
 
 module.exports = {
-  contracts_build_directory: 'dapp/src/contracts',
   networks: {
     development: {
       host: 'localhost',

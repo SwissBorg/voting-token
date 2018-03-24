@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-testrpc --port 7544 --network-id 9 --gasLimit 0x989680 --blocktime 0 \
+ganache-cli --port 7544 --network-id 9 --gasLimit 0x989680 --blocktime 0 \
 			--account="0xfdb2886b1ff5a0e60f9a4684e385aa7b77f064730304143f08ba96ca1a17effa,100000000000000000000000000" \
 			--account="0x38712cee7ace9c96181cc6a31f55fac50b3ff005d7c1bfa0c3a0121c8fc4b1c2,100000000000000000000000000" \
 			--account="0x59983eb3692f525def24c283b775973112d67d30589fa63798dfd70cea82467d,100000000000000000000000000" \
