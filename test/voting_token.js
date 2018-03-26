@@ -45,15 +45,15 @@ contract("VotingToken", async (accounts) => {
     expect(await vt.open()).to.be.true;
   })
 
-  const transferAmount = 100*1e8;
+  const transferAmount = new web3.BigNumber(100*1e8);
 
   it("allow transfers", async () => {
     const balance1 = await vt.balanceOf(owner);
 
     await vt.transfer(voter1, transferAmount);
 
-    assert.equal(balance1-transferAmount, await vt.balanceOf(owner), "should correctly decrease the balance of the sender");
-    assert.equal(transferAmount, await vt.balanceOf(voter1), "should correctly increase the balance of the recipient");
+    expect(balance1.sub(transferAmount)).to.deep.equal(await vt.balanceOf(owner));
+    expect(transferAmount).to.deep.equal(await vt.balanceOf(voter1));
   })
 
   const voteAmount = 250*1e8;
