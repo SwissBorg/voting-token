@@ -1,116 +1,153 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-const utils = require("./utils")
-let ERC20Token = artifacts.require("ERC20Token")
-let VotingToken = artifacts.require("VotingToken")
+import {advanceBlock, latestTime, increaseTimeTo, duration} from './helpers/utils';
 
-contract("VotingToken", async (accounts) => {
-  let vt = undefined; // VotingToken
-  let rt = undefined; // RewardToken as a ERC20Token
-  let firstPropAddress = undefined;
-  let secondPropAddress = undefined;
-  let blankVoteAddress = undefined;
+const BigNumber = web3.BigNumber
 
+const should = require('chai')
+  .use(require('chai-as-promised'))
+  .use(require('chai-bignumber')(BigNumber))
+  .should();
+
+const EVMThrow = 'invalid opcode';
+const EVMRevert = 'revert';
+
+const StandardToken = artifacts.require("StandardToken");
+const VotingToken = artifacts.require("VotingToken");
+
+contract("VotingToken", function (accounts) {
   const owner = accounts[0];
   const voter1 = accounts[1];
   const voter2 = accounts[2];
-  const voter3 = accounts[3];
-  const voter4 = accounts[4];
-  
+  const votingAddress1 = "0x0000000000000000000000000000000000000001";
+  const votingAddress2 = "0x0000000000000000000000000000000000000002";
+  const votingAddress3 = "0x0000000000000000000000000000000000000003";
+  const totalRewardSupply = 1e6;
+
   before(async () => {
-    rt = await ERC20Token.deployed();
-    vt = await VotingToken.deployed();
-    let props = await vt.props.call();
-    firstPropAddress = props[0];
-    secondPropAddress = props[1];
-    blankVoteAddress = props[2];
+    // advance to the next block to correctly read time in the solidity "now"
+    await advanceBlock()
+  });
+
+  beforeEach(async function () {
+    this.startTime = latestTime() + duration.weeks(1);
+    this.endTime = this.startTime + duration.weeks(1);
+    this.afterStartTime = this.startTime + duration.minutes(10);
+    this.afterEndTime = this.endTime + duration.minutes(10);
+    this.votingAddresses = [votingAddress1, votingAddress2, votingAddress3];
+
+    this.rewardToken = await StandardToken.new("Reward Token", "CHSB", 8, 1e9*1e8);
+    this.votingToken = await VotingToken.new("Voting Token", "RSB", 8, this.startTime, this.endTime, this.rewardToken.address, this.votingAddresses);
   
+    // give reward token to the voting contract
+    this.rewardToken.transfer(this.votingToken.address, totalRewardSupply);
+  });
 
-    await rt.transfer(VotingToken.address, 1000*1e8);
+  it("should create with correct parameters", async function () {
+    this.votingToken.should.exist;
 
-    //console.log(`Nicolas (owner_${firstPropAddress}, 2_${secondPropAddress}, 3_${blankVoteAddress}`)
-  })
+    (await this.votingToken.name()).should.be.equal("Voting Token");
+    (await this.votingToken.symbol()).should.be.equal("RSB");
+    (await this.votingToken.decimals()).should.be.bignumber.equal(8);
+    (await this.votingToken.totalSupply()).should.be.bignumber.equal(0);
 
-  it("is created open", async () => {
-    expect(await vt.open()).to.be.true;
-  })
+    (await this.votingToken.owner()).should.be.equal(owner);
 
-  const transferAmount = new web3.BigNumber(100*1e8);
+    (await this.votingToken.startTime()).should.be.bignumber.equal(this.startTime);
+    (await this.votingToken.endTime()).should.be.bignumber.equal(this.endTime);
+    (await this.votingToken.hasStarted()).should.be.equal(false);
+    (await this.votingToken.hasEnded()).should.be.equal(false);
+    (await this.votingToken.numberOfAlternatives()).should.be.bignumber.equal(3);
+  });
 
-  it("allow transfers", async () => {
-    const balance1 = await vt.balanceOf(owner);
+  it("should read the list of voting addresses", async function () {
+    (await this.votingToken.votingAddresses(0)).should.be.equal(votingAddress1);
+    (await this.votingToken.votingAddresses(1)).should.be.equal(votingAddress2);
+    (await this.votingToken.votingAddresses(2)).should.be.equal(votingAddress3);
+    this.votingToken.votingAddresses(3).should.be.rejectedWith(EVMThrow);
+  });
 
-    await vt.transfer(voter1, transferAmount);
+  it("should allow the owner to mint", async function () {
+    await this.votingToken.mint(voter1, 1000, 10);
+    (await this.votingToken.totalSupply()).should.be.bignumber.equal(1000);
+    (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(1000);
+  });
 
-    expect(balance1.sub(transferAmount)).to.deep.equal(await vt.balanceOf(owner));
-    expect(transferAmount).to.deep.equal(await vt.balanceOf(voter1));
-  })
+  it("should revert on anyone else trying to mint", async function () {
+    this.votingToken.mint(voter1, 1000, 10, {from: voter1}).should.be.rejectedWith(EVMRevert);
+  });
 
-  const voteAmount = 250*1e8;
+  it("should revert when mintting in voting period", async function () {
+    await increaseTimeTo(this.afterStartTime);
+    this.votingToken.mint(voter1, 1000, 10).should.be.rejectedWith(EVMRevert);
+  });
 
-  it("accepts votes for the first prop", async () => {
-    // Give voter his voting tokens
-    await vt.transfer(voter2, voteAmount);
-   
-    // Voter2 votes for the first prop
-    await vt.transfer(firstPropAddress, voteAmount, {from: voter2});
-    expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, 0, 0]);
-    expect((await vt.balanceOf(voter2)).toNumber()).to.equal(0);
-    expect((await rt.balanceOf(voter2)).toNumber()).to.equal(voteAmount/100);
-  }) 
+  it("should allow transfer tokens before start time", async function () {
+    await this.votingToken.mint(voter1, 1000, 10);
+    await this.votingToken.transfer(voter2, 500, {from: voter1});
 
-  it("accepts votes for the second prop", async () => { 
-    // Give voter his voting tokens
-    await vt.transfer(voter3, voteAmount);
+    (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(500);
+    (await this.votingToken.balanceOf(voter2)).should.be.bignumber.equal(500);
+  });
 
-    // Then, voter3 votes for the second prop
-    await vt.transfer(secondPropAddress, voteAmount, {from: voter3});
-    expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, voteAmount, 0]);
-    expect((await vt.balanceOf(voter3)).toNumber()).to.equal(0);
-    expect((await rt.balanceOf(voter3)).toNumber()).to.equal(voteAmount/100);
-  })
+  it("should revert on transfer to a voting address before start time", async function () {
+    await this.votingToken.mint(voter1, 1000, 10);
+    this.votingToken.transfer(votingAddress1, 1000, {from: voter1}).should.be.rejectedWith(EVMRevert);
+  });
 
-  it("accepts blank votes", async () => {
-    // Give voter his voting tokens
-    await vt.transfer(voter4, voteAmount);
+  it("should revert on transfer to a voting address after end time", async function () {
+    await this.votingToken.mint(voter1, 1000, 10);
 
-    // Then, voter4 cast a blank vote
-    await vt.transfer(blankVoteAddress, voteAmount, {from: voter4});
-    expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, voteAmount, voteAmount]);
-    expect((await vt.balanceOf(voter4)).toNumber()).to.equal(0);
-    expect((await rt.balanceOf(voter4)).toNumber()).to.equal(voteAmount/100);
-  })
+    await increaseTimeTo(this.afterEndTime);
 
-  it("can be closed", async () => {
+    this.votingToken.transfer(votingAddress1, 1000, {from: voter1}).should.be.rejectedWith(EVMRevert);
+  });
 
-    let contractBalance = await rt.balanceOf(VotingToken.address);
-    let ownerBalance = await rt.balanceOf(owner)
+  it("should give reward when transfering in voting period", async function () {
+    const votingTokens = 1000;
+    const expectedReward = 100;
+    
+    await this.votingToken.mint(voter1, votingTokens, 10);
+    (await this.rewardToken.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
 
-    await vt.close()
+    await increaseTimeTo(this.afterStartTime);
 
-    expect((await vt.getResults()).map(i=>i.toNumber())).to.deep.equal([voteAmount, voteAmount, voteAmount]);
-    expect(await vt.open()).to.be.false;
+    await this.votingToken.transfer(votingAddress1, votingTokens, {from: voter1}).should.be.fulfilled;
 
-    expect(await rt.balanceOf(owner)).to.deep.equal(ownerBalance.plus(contractBalance));
-  })
+    (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(0);
+    (await this.votingToken.balanceOf(votingAddress1)).should.be.bignumber.equal(votingTokens);
+    
+    (await this.rewardToken.balanceOf(voter1)).should.be.bignumber.equal(expectedReward);
+    (await this.rewardToken.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply - expectedReward);
+  });
 
-  it("no more accept votes once closed", async () => {
-    await utils.expectThrow(
-      vt.transfer(firstPropAddress, voteAmount, {from: voter1})
-    );
-  }) 
+  it("should expose hasStarted() and hasEnded() functions", async function () {
+    (await this.votingToken.hasStarted()).should.be.equal(false);
+    (await this.votingToken.hasEnded()).should.be.equal(false);
 
+    await increaseTimeTo(this.afterStartTime);
+
+    (await this.votingToken.hasStarted()).should.be.equal(true);
+    (await this.votingToken.hasEnded()).should.be.equal(false);
+
+    await increaseTimeTo(this.afterEndTime);
+
+    (await this.votingToken.hasStarted()).should.be.equal(true);
+    (await this.votingToken.hasEnded()).should.be.equal(true);
+  });
+
+  it("can be destroyed by the owner", async function () {
+    const beforeBalance = (await this.rewardToken.balanceOf(owner)).toNumber();
+
+    (await this.rewardToken.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
+
+    await this.votingToken.destroy([this.rewardToken.address]).should.be.fulfilled;
+
+    (await this.rewardToken.balanceOf(owner)).should.be.bignumber.equal(beforeBalance + totalRewardSupply);
+    (await this.rewardToken.balanceOf(this.votingToken.address)).should.be.bignumber.equal(0);
+  });
+
+  it("should revert on anyone else trying to destroy", async function () {
+    this.votingToken.destroy([this.rewardToken.address], {from: voter1}).should.be.rejectedWith(EVMRevert);
+  });
+  
 });
-
-
-

@@ -1,0 +1,26 @@
+{
+  "name": "voting-token",
+  "version": "1.0.0",
+  "description": "A voting token used by SwissBorg referendums",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SwissBorg/voting-token.git"
+  },
+  "keywords": [],
+  "author": "SwissBorg",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/SwissBorg/voting-token/issues"
+  },
+  "homepage": "https://github.com/SwissBorg/voting-token",
+  "dependencies": {},
+  "devDependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
+    "truffle": "4.1.11"
+  }
+}

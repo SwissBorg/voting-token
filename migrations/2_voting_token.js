@@ -1,30 +1,22 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 let VotingToken = artifacts.require("VotingToken");
-let ERC20Token =  artifacts.require("ERC20Token");
+let StandardToken = artifacts.require("StandardToken");
 
-module.exports = (deployer) => {
+module.exports = function (deployer) {
 
-	deployer.then(async () => {	
-		await deployer.deploy(ERC20Token, "CHSB", "SwissBorg", 1e9*1e8)
+	deployer.then(async function () {	
+		await deployer.deploy(StandardToken, "SwissBorg", "CHSB", 8, 1e9*1e8);
 
-		await deployer.deploy(
-				VotingToken, "RSB1", "SwissBorg Referendum 1", 1e9*1e8,
-				"What should the SwissBorg investment platform be?",
-				"Mobile App", "Web App",
-				web3.personal.newAccount(), // mobile choice
-				web3.personal.newAccount(), // web choice
-				web3.personal.newAccount(), // blank vote
-				ERC20Token.address)
+        await deployer.deploy(
+            VotingToken,
+            "SwissBorg Referendum 2",
+            "RSB2",
+            8,
+            2524608000, // 2050-01-01
+            2556144000, // 2051-01-01
+            StandardToken.address,
+            ["0x00faE685f2B2cd105ce7ca8dF0ab4c7FceAeAD69"]
+        );
+
 	})
 };
