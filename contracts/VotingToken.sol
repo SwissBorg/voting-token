@@ -16,8 +16,8 @@ contract VotingToken is StandardToken, Owned {
 
     ERC20 private rewardToken;
 
-    uint public startTime;
-    uint public endTime;
+    bool public opened;
+    bool public closed;
 
     address[] public votingAddresses;
     uint public numberOfAlternatives;
@@ -29,18 +29,12 @@ contract VotingToken is StandardToken, Owned {
         string _name,
         string _symbol,
         uint8 _decimals,
-        uint _startTime,
-        uint _endTime,
         ERC20 _rewardToken,
         address[] _votingAddresses
     ) public StandardToken(_name, _symbol, _decimals, 0) {
-        require(_startTime >= now);
-        require(_endTime >= _startTime);
         require(_votingAddresses.length <= MAX_NUMBER_OF_ALTERNATIVES);
 
         rewardToken = _rewardToken;
-        startTime = _startTime;
-        endTime = _endTime;
 
         numberOfAlternatives = _votingAddresses.length;
         votingAddresses = _votingAddresses;
@@ -60,14 +54,6 @@ contract VotingToken is StandardToken, Owned {
         return true;
     }
 
-    function hasStarted() public view returns (bool) {
-        return now >= startTime;
-    }
-
-    function hasEnded() public view returns (bool) {
-        return now > endTime;
-    }
-
     // Refuse ETH
     function () public payable {
         revert();
@@ -77,13 +63,23 @@ contract VotingToken is StandardToken, Owned {
 
     // Only before voting starts
     function mint(address _to, uint _amount, uint8 _rewardRatio) onlyOwner external returns (bool) {
-        require(!hasStarted());
+        require(!opened);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
         rewardRatios[_to] = _rewardRatio;
         emit Mint(_to, _amount);
         emit Transfer(address(0), _to, _amount);
         return true;
+    }
+
+    function open() onlyOwner external {
+        require(!opened);
+        opened = true;
+    }
+
+    function close() onlyOwner external {
+        require(opened && !closed);
+        closed = true;
     }
 
     /**
@@ -106,7 +102,7 @@ contract VotingToken is StandardToken, Owned {
 
     function _rewardVote(address _from, address _to, uint _value) private {
         if(_isVotingAddress(_to)) {
-            require(hasStarted() && !hasEnded());
+            require(opened && !closed);
             uint rewardTokens = 0;
             uint8 ratio = rewardRatios[_from];
             if (ratio > 0) {

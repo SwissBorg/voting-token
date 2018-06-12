@@ -12,8 +12,6 @@ module.exports = function (deployer) {
             "SwissBorg Referendum 2",
             "RSB2",
             8,
-            2524608000, // 2050-01-01
-            2556144000, // 2051-01-01
             StandardToken.address,
             ["0x00faE685f2B2cd105ce7ca8dF0ab4c7FceAeAD69"]
         );
