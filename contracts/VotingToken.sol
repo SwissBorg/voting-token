@@ -12,7 +12,6 @@ contract VotingToken is StandardToken, Owned {
     uint public constant MAX_NUMBER_OF_ALTERNATIVES = 255;
     uint public constant REWARD_RATIO = 100;
 
-    event Mint(address indexed to, uint amount);
     event Reward(address indexed to, uint amount);
 
     ERC20 private rewardToken;
@@ -66,7 +65,6 @@ contract VotingToken is StandardToken, Owned {
         require(!opened);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        emit Mint(_to, _amount);
         emit Transfer(address(0), _to, _amount);
         return true;
     }
