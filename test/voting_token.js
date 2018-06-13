@@ -88,22 +88,22 @@ contract("VotingToken", function (accounts) {
   });
 
   it("should allow the owner to mint", async function () {
-    await this.votingToken.mint(voter1, 1000, 10);
+    await this.votingToken.mint(voter1, 1000);
     (await this.votingToken.totalSupply()).should.be.bignumber.equal(1000);
     (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(1000);
   });
 
   it("should revert on anyone else trying to mint", async function () {
-    this.votingToken.mint(voter1, 1000, 10, {from: voter1}).should.be.rejectedWith(EVMRevert);
+    this.votingToken.mint(voter1, 1000, {from: voter1}).should.be.rejectedWith(EVMRevert);
   });
 
   it("should revert when mintting in voting period", async function () {
     await this.votingToken.open();
-    this.votingToken.mint(voter1, 1000, 10).should.be.rejectedWith(EVMRevert);
+    this.votingToken.mint(voter1, 1000).should.be.rejectedWith(EVMRevert);
   });
 
   it("should allow transfer tokens before start time", async function () {
-    await this.votingToken.mint(voter1, 1000, 10);
+    await this.votingToken.mint(voter1, 1000);
     await this.votingToken.transfer(voter2, 500, {from: voter1});
 
     (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(500);
@@ -111,12 +111,12 @@ contract("VotingToken", function (accounts) {
   });
 
   it("should revert on transfer to a voting address before start time", async function () {
-    await this.votingToken.mint(voter1, 1000, 10);
+    await this.votingToken.mint(voter1, 1000);
     this.votingToken.transfer(votingAddress1, 1000, {from: voter1}).should.be.rejectedWith(EVMRevert);
   });
 
   it("should revert on transfer to a voting address after end time", async function () {
-    await this.votingToken.mint(voter1, 1000, 10);
+    await this.votingToken.mint(voter1, 1000);
 
     await this.votingToken.open();
     await this.votingToken.close();
@@ -126,9 +126,9 @@ contract("VotingToken", function (accounts) {
 
   it("should give reward when transfering in voting period", async function () {
     const votingTokens = 1000;
-    const expectedReward = 100;
+    const expectedReward = 10;
     
-    await this.votingToken.mint(voter1, votingTokens, 10);
+    await this.votingToken.mint(voter1, votingTokens);
     (await this.rewardToken.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
 
     await this.votingToken.open();

@@ -10,6 +10,7 @@ contract VotingToken is StandardToken, Owned {
     using SafeMath for uint;
 
     uint public constant MAX_NUMBER_OF_ALTERNATIVES = 255;
+    uint public constant REWARD_RATIO = 100;
 
     event Mint(address indexed to, uint amount);
     event Reward(address indexed to, uint amount);
@@ -21,7 +22,6 @@ contract VotingToken is StandardToken, Owned {
 
     address[] public votingAddresses;
     uint public numberOfAlternatives;
-    mapping (address => uint8) public rewardRatios;
 
     // ~~~~~ Constructor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -62,11 +62,10 @@ contract VotingToken is StandardToken, Owned {
     // ~~~~~ Admin Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     // Only before voting starts
-    function mint(address _to, uint _amount, uint8 _rewardRatio) onlyOwner external returns (bool) {
+    function mint(address _to, uint _amount) onlyOwner external returns (bool) {
         require(!opened);
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        rewardRatios[_to] = _rewardRatio;
         emit Mint(_to, _amount);
         emit Transfer(address(0), _to, _amount);
         return true;
@@ -103,11 +102,7 @@ contract VotingToken is StandardToken, Owned {
     function _rewardVote(address _from, address _to, uint _value) private {
         if(_isVotingAddress(_to)) {
             require(opened && !closed);
-            uint rewardTokens = 0;
-            uint8 ratio = rewardRatios[_from];
-            if (ratio > 0) {
-                rewardTokens = _value.div(ratio);
-            }
+            uint rewardTokens = _value.div(REWARD_RATIO);
             rewardToken.transfer(_from, rewardTokens);
             emit Reward(_from, _value);
         }
