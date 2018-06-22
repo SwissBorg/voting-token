@@ -5,15 +5,24 @@ let StandardToken = artifacts.require("StandardToken");
 module.exports = function (deployer) {
 
 	deployer.then(async function () {	
-		await deployer.deploy(StandardToken, "SwissBorg", "CHSB", 8, 1e9*1e8);
+		const rewardToken1 = await deployer.deploy(StandardToken, "Reward 1", "XXX1", 8, 1e9*1e8);
+		const rewardToken2 = await deployer.deploy(StandardToken, "Reward 2", "XXX2", 8, 1e9*1e8);
 
         await deployer.deploy(
             VotingToken,
             "SwissBorg Referendum 2",
             "RSB2",
             8,
-            StandardToken.address,
-            ["0x00faE685f2B2cd105ce7ca8dF0ab4c7FceAeAD69"]
+            rewardToken1.address,
+            rewardToken2.address,
+            [
+                "0x0",
+                "0x1",
+                "0x2",
+                "0x3",
+                "0x4",
+                "0x5"
+            ]
         );
 
 	})

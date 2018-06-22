@@ -5,22 +5,26 @@ import "./Owned.sol";
 import "./ERC20.sol";
 import "./StandardToken.sol";
 
-
+/**
+ * @title SwissBorg Referendum 2
+ * @dev Hardcoded version with exactly 6 voting addresses and 2 reward tokens
+ */
 contract VotingToken is StandardToken, Owned {
     using SafeMath for uint;
 
-    uint public constant MAX_NUMBER_OF_ALTERNATIVES = 255;
+    uint public constant numberOfAlternatives = 6;
     uint public constant REWARD_RATIO = 100;
 
     event Reward(address indexed to, uint amount);
+    event Result(address indexed votingAddress, uint amount);
 
-    ERC20 private rewardToken;
+    ERC20 private rewardToken1;
+    ERC20 private rewardToken2;
 
     bool public opened;
     bool public closed;
 
-    address[] public votingAddresses;
-    uint public numberOfAlternatives;
+    address[numberOfAlternatives] public votingAddresses;
 
     // ~~~~~ Constructor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -28,14 +32,13 @@ contract VotingToken is StandardToken, Owned {
         string _name,
         string _symbol,
         uint8 _decimals,
-        ERC20 _rewardToken,
-        address[] _votingAddresses
+        ERC20 _rewardToken1,
+        ERC20 _rewardToken2,
+        address[numberOfAlternatives] _votingAddresses
     ) public StandardToken(_name, _symbol, _decimals, 0) {
-        require(_votingAddresses.length <= MAX_NUMBER_OF_ALTERNATIVES);
-
-        rewardToken = _rewardToken;
-
-        numberOfAlternatives = _votingAddresses.length;
+        require(_votingAddresses.length == numberOfAlternatives);
+        rewardToken1 = _rewardToken1;
+        rewardToken2 = _rewardToken2;
         votingAddresses = _votingAddresses;
     }
 
@@ -91,6 +94,12 @@ contract VotingToken is StandardToken, Owned {
             token.transfer(owner, balance);
         }
 
+        for (uint j = 0; j < numberOfAlternatives; j++) {
+            address votingAddress = votingAddresses[j];
+            uint votes = balances[votingAddress];
+            emit Result(votingAddress, votes);
+        }
+
         // Transfer Eth to owner and terminate contract
         selfdestruct(owner);
     }
@@ -101,7 +110,8 @@ contract VotingToken is StandardToken, Owned {
         if(_isVotingAddress(_to)) {
             require(opened && !closed);
             uint rewardTokens = _value.div(REWARD_RATIO);
-            rewardToken.transfer(_from, rewardTokens);
+            require(rewardToken1.transfer(_from, rewardTokens));
+            require(rewardToken2.transfer(_from, rewardTokens));
             emit Reward(_from, _value);
         }
     }

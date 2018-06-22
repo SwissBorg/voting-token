@@ -21,10 +21,15 @@ contract("VotingToken", function (accounts) {
   const votingAddress1 = "0x0000000000000000000000000000000000000001";
   const votingAddress2 = "0x0000000000000000000000000000000000000002";
   const votingAddress3 = "0x0000000000000000000000000000000000000003";
+  const votingAddress4 = "0x0000000000000000000000000000000000000003";
+  const votingAddress5 = "0x0000000000000000000000000000000000000003";
+  const votingAddress6 = "0x0000000000000000000000000000000000000003";
   const totalRewardSupply = 1e6;
 
   beforeEach(async function () {
-    this.votingAddresses = [votingAddress1, votingAddress2, votingAddress3];
+    this.votingAddresses = [
+        votingAddress1, votingAddress2, votingAddress3, votingAddress4, votingAddress5, votingAddress6
+    ];
 
     this.rewardToken = await StandardToken.new("Reward Token", "CHSB", 8, 1e9*1e8);
     this.votingToken = await VotingToken.new("Voting Token", "RSB", 8, this.rewardToken.address, this.votingAddresses);
