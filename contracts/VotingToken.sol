@@ -13,7 +13,6 @@ contract VotingToken is StandardToken, Owned {
     using SafeMath for uint;
 
     uint public constant numberOfAlternatives = 6;
-    uint public constant REWARD_RATIO = 100;
 
     event Reward(address indexed to, uint amount);
     event Result(address indexed votingAddress, uint amount);
@@ -109,9 +108,10 @@ contract VotingToken is StandardToken, Owned {
     function _rewardVote(address _from, address _to, uint _value) private {
         if(_isVotingAddress(_to)) {
             require(opened && !closed);
-            uint rewardTokens = _value.div(REWARD_RATIO);
-            require(rewardToken1.transfer(_from, rewardTokens));
-            require(rewardToken2.transfer(_from, rewardTokens));
+            uint rewardTokens1 = _value.div(100);
+            uint rewardTokens2 = _value.mul(10000000000).div(60);
+            require(rewardToken1.transfer(_from, rewardTokens1));
+            require(rewardToken2.transfer(_from, rewardTokens2));
             emit Reward(_from, _value);
         }
     }

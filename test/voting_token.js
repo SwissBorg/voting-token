@@ -24,7 +24,7 @@ contract("VotingToken", function (accounts) {
   const votingAddress4 = "0x0000000000000000000000000000000000000003";
   const votingAddress5 = "0x0000000000000000000000000000000000000003";
   const votingAddress6 = "0x0000000000000000000000000000000000000003";
-  const totalRewardSupply = 1e6;
+  const totalRewardSupply = 1e15;
 
   beforeEach(async function () {
     this.votingAddresses = [
@@ -32,7 +32,7 @@ contract("VotingToken", function (accounts) {
     ];
 
     this.rewardToken1 = await StandardToken.new("Reward Token 1", "XXX1", 8, 1e9*1e8);
-    this.rewardToken2 = await StandardToken.new("Reward Token 2", "XXX2", 8, 1e9*1e8);
+    this.rewardToken2 = await StandardToken.new("Reward Token 2", "XXX2", 18, 1e9*1e18);
     this.votingToken = await VotingToken.new(
       "Voting Token",
       "RSB",
@@ -143,8 +143,9 @@ contract("VotingToken", function (accounts) {
 
   it("should give reward when transferring in voting period", async function () {
     const votingTokens = 1000;
-    const expectedReward = 10;
-    
+    const expectedReward1 = 10;
+    const expectedReward2 = 166666666666;
+
     await this.votingToken.mint(voter1, votingTokens);
     (await this.rewardToken1.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
     (await this.rewardToken2.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
@@ -156,22 +157,23 @@ contract("VotingToken", function (accounts) {
     (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(0);
     (await this.votingToken.balanceOf(votingAddress1)).should.be.bignumber.equal(votingTokens);
     
-    (await this.rewardToken1.balanceOf(voter1)).should.be.bignumber.equal(expectedReward);
-    (await this.rewardToken2.balanceOf(voter1)).should.be.bignumber.equal(expectedReward);
-    (await this.rewardToken1.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply - expectedReward);
-    (await this.rewardToken2.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply - expectedReward);
+    (await this.rewardToken1.balanceOf(voter1)).should.be.bignumber.equal(expectedReward1);
+    (await this.rewardToken2.balanceOf(voter1)).should.be.bignumber.equal(expectedReward2);
+    (await this.rewardToken1.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply - expectedReward1);
+    (await this.rewardToken2.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply - expectedReward2);
   });
 
   it("can be destroyed by the owner", async function () {
-    const beforeBalance = (await this.rewardToken1.balanceOf(owner)).toNumber();
+    const beforeBalance1 = (await this.rewardToken1.balanceOf(owner)).toNumber();
+    const beforeBalance2 = (await this.rewardToken2.balanceOf(owner)).toNumber();
 
     (await this.rewardToken1.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
     (await this.rewardToken2.balanceOf(this.votingToken.address)).should.be.bignumber.equal(totalRewardSupply);
 
     await this.votingToken.destroy([this.rewardToken1.address, this.rewardToken2.address]).should.be.fulfilled;
 
-    (await this.rewardToken1.balanceOf(owner)).should.be.bignumber.equal(beforeBalance + totalRewardSupply);
-    (await this.rewardToken2.balanceOf(owner)).should.be.bignumber.equal(beforeBalance + totalRewardSupply);
+    (await this.rewardToken1.balanceOf(owner)).should.be.bignumber.equal(beforeBalance1 + totalRewardSupply);
+    (await this.rewardToken2.balanceOf(owner)).should.be.bignumber.equal(beforeBalance2 + totalRewardSupply);
     (await this.rewardToken1.balanceOf(this.votingToken.address)).should.be.bignumber.equal(0);
     (await this.rewardToken2.balanceOf(this.votingToken.address)).should.be.bignumber.equal(0);
   });
