@@ -7,7 +7,7 @@ import "./StandardToken.sol";
 
 /**
  * @title SwissBorg Referendum 2
- * @dev Hardcoded version with exactly 6 voting addresses and 2 reward tokens
+ * @dev Hardcoded version with exactly 6 voting addresses.
  */
 contract VotingToken is StandardToken, Owned {
     using SafeMath for uint;
@@ -17,8 +17,7 @@ contract VotingToken is StandardToken, Owned {
     event Reward(address indexed to, uint amount);
     event Result(address indexed votingAddress, uint amount);
 
-    ERC20 private rewardToken1;
-    ERC20 private rewardToken2;
+    ERC20 private rewardToken;
 
     bool public opened;
     bool public closed;
@@ -31,13 +30,11 @@ contract VotingToken is StandardToken, Owned {
         string _name,
         string _symbol,
         uint8 _decimals,
-        ERC20 _rewardToken1,
-        ERC20 _rewardToken2,
+        ERC20 _rewardToken,
         address[numberOfAlternatives] _votingAddresses
     ) public StandardToken(_name, _symbol, _decimals, 0) {
         require(_votingAddresses.length == numberOfAlternatives);
-        rewardToken1 = _rewardToken1;
-        rewardToken2 = _rewardToken2;
+        rewardToken = _rewardToken;
         votingAddresses = _votingAddresses;
     }
 
@@ -109,9 +106,7 @@ contract VotingToken is StandardToken, Owned {
         if(_isVotingAddress(_to)) {
             require(opened && !closed);
             uint rewardTokens1 = _value.div(100);
-            uint rewardTokens2 = _value.mul(10000000000).div(60);
-            require(rewardToken1.transfer(_from, rewardTokens1));
-            require(rewardToken2.transfer(_from, rewardTokens2));
+            require(rewardToken.transfer(_from, rewardTokens1));
             emit Reward(_from, _value);
         }
     }
