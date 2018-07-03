@@ -116,6 +116,22 @@ contract("VotingToken", function (accounts) {
     this.votingToken.mint(voter1, 1000).should.be.rejectedWith(EVMRevert);
   });
 
+  it("should allow the owner to batch-mint", async function () {
+    await this.votingToken.batchMint([voter1, voter2], [1000, 2000]);
+    (await this.votingToken.totalSupply()).should.be.bignumber.equal(3000);
+    (await this.votingToken.balanceOf(voter1)).should.be.bignumber.equal(1000);
+    (await this.votingToken.balanceOf(voter2)).should.be.bignumber.equal(2000);
+  });
+
+  it("should revert on anyone else trying to batch-mint", async function () {
+    this.votingToken.batchMint([voter1, voter2], [1000, 2000], {from: voter1}).should.be.rejectedWith(EVMRevert);
+  });
+
+  it("should revert when batch-mintting in voting period", async function () {
+    await this.votingToken.open();
+    this.votingToken.batchMint([voter1, voter2], [1000, 2000]).should.be.rejectedWith(EVMRevert);
+  });
+
   it("should allow transfer tokens before start time", async function () {
     await this.votingToken.mint(voter1, 1000);
     await this.votingToken.transfer(voter2, 500, {from: voter1});

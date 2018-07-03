@@ -68,6 +68,22 @@ contract VotingToken is StandardToken, Owned {
         return true;
     }
 
+    // Gas-optimized function
+    function batchMint(address[] _tos, uint[] _amounts) onlyOwner external returns (bool) {
+        require(!opened);
+        require(_tos.length == _amounts.length);
+        uint sum = 0;
+        for (uint i = 0; i < _tos.length; i++) {
+            address to = _tos[i];
+            uint amount = _amounts[i];
+            sum = sum.add(amount);
+            balances[to] = balances[to].add(amount);
+            emit Transfer(address(0), to, amount);
+        }
+        totalSupply = totalSupply.add(sum);
+        return true;
+    }
+
     function open() onlyOwner external {
         require(!opened);
         opened = true;
